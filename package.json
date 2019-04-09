@@ -24,7 +24,7 @@
     "/AUTHORS",
     "/LICENSE.txt"
   ],
-  "main": "./dist/mathlive.js",
+  "main": "./src/mathlive.js",
   "scripts": {
     "preclean": "echo '\\033[0;32mClean...\\033[0m'",
     "clean": "rimraf build dist docs",
