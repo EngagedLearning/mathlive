@@ -1617,23 +1617,34 @@ defineFunction('\\xcancel', '{body:auto}', null,
 
 
 
-// defineFunction([
-    // '\\tiny', '\\scriptsize', '\\footnotesize', '\\small',
-    // '\\normalsize',
-    // '\\large', '\\Large', '\\LARGE', '\\huge', '\\Huge'
-// ], '', null,
-//     function(name, args) {
-//         return {
-//             type: '',
-//             size: name;
-//         }
-//     }
-// )
 
 
 
 category = 'Styling';
 
+// Size
+defineFunction([
+    '\\tiny', '\\scriptsize', '\\footnotesize', '\\small',
+    '\\normalsize',
+    '\\large', '\\Large', '\\LARGE', '\\huge', '\\Huge'
+], '', {allowedInText: true},
+    function(name, _args) {
+        return {
+            fontSize: {
+                'tiny': 'size1',
+                'scriptsize': 'size2',
+                'footnotesize': 'size3',
+                'small': 'size4',
+                'normalsize': 'size5',
+                'large': 'size6',
+                'Large': 'size7',
+                'LARGE': 'size8',
+                'huge': 'size9',
+                'Huge': 'size10'
+            }[name.slice(1)]
+        }
+    }
+)
 
 
 // SERIES: weight
@@ -2844,7 +2855,7 @@ defineFunction([
         }[name],
         body: getSimpleString(args[0]) || args[0],
         captureSelection: true,     // Do not let children be selected
-        baseFontFamily: 'cmr'
+        baseFontFamily: name === '\\mathop' ? 'math' : ''
     };
     if (name === '\\mathop') {
         result.limits = 'nolimits';
@@ -2860,7 +2871,8 @@ defineFunction([
         type: 'mop',
         skipBoundary: true,
         body: args[0],
-        isFunction: true
+        isFunction: true,
+        baseFontFamily: 'cmr'
     };
 
     if (name === '\\operatorname') {
@@ -3045,7 +3057,7 @@ defineFunction('\\^', '{:string}',
     {allowedInText: true}, 
     function(name, args) {
     return {
-        type: 'MATHORD',
+        type: 'mord',
         limits: 'nolimits',
         symbol: true,
         isFunction: false,
@@ -3061,7 +3073,7 @@ defineFunction("\\`", '{:string}',
     {allowedInText: true}, 
     function(name, args) {
     return {
-        type: 'MATHORD',
+        type: 'mord',
         limits: 'nolimits',
         symbol: true,
         isFunction: false,
@@ -3078,7 +3090,7 @@ defineFunction("\\'", '{:string}',
     {allowedInText: true}, 
     function(name, args) {
     return {
-        type: 'MATHORD',
+        type: 'mord',
         limits: 'nolimits',
         symbol: true,
         isFunction: false,
@@ -3094,7 +3106,7 @@ defineFunction('\\~', '{:string}',
     {allowedInText: true}, 
     function(name, args) {
     return {
-        type: 'MATHORD',
+        type: 'mord',
         limits: 'nolimits',
         symbol: true,
         isFunction: false,
@@ -3109,7 +3121,7 @@ defineFunction('\\c', '{:string}',
     {allowedInText: true}, 
     function(name, args) {
     return {
-        type: 'MATHORD',
+        type: 'mord',
         limits: 'nolimits',
         symbol: true,
         isFunction: false,

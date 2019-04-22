@@ -1352,11 +1352,10 @@ EditableMathlist.prototype.next = function(options) {
 
     // Still some siblings to go through. Move on to the next one.
     this.setSelection(this.anchorOffset() + 1);
-
-    // If the new anchor is a compound atom, dive into its components
     const anchor = this.anchor();
-    // Only dive in if the atom allows capture of the selection by
-    // its sub-elements
+
+    // Dive into its components, if the new anchor is a compound atom, 
+    // and allows capture of the selection by its sub-elements
     if (anchor && !anchor.captureSelection) {
         let relation;
         if (anchor.array) {
@@ -1821,8 +1820,10 @@ EditableMathlist.prototype.leap = function(dir, callHandler) {
     dir = dir || +1;
     dir = dir < 0 ? -1 : +1;
     callHandler = callHandler || true;
-
+    const savedSuppressChangeNotifications = this.suppressChangeNotifications;
+    this.suppressChangeNotifications = true;
     const oldPath = clone(this);
+    const oldExtent = this.extent;
     this.move(dir);
 
     if (this.anchor().type === 'placeholder') {
@@ -1837,8 +1838,11 @@ EditableMathlist.prototype.leap = function(dir, callHandler) {
         atom.type === 'placeholder' ||
         (path.length > 1 && this.siblings().length === 1), dir);
 
-    // If no placeholders were found, call handler
+    // If no placeholders were found, call handler or move to the next focusable
+    // element in the document
     if (placeholders.length === 0) {
+        // Restore the selection
+        this.setPath(oldPath, oldExtent);
         if (callHandler) {
             if (this.config.onTabOutOf) {
                 this.config.onTabOutOf(this.target, dir > 0 ? 'forward' : 'backward');
@@ -1870,9 +1874,12 @@ EditableMathlist.prototype.leap = function(dir, callHandler) {
     }
 
     // Set the selection to the next placeholder
+    this.selectionWillChange();
     this.setPath(placeholders[0]);
     if (this.anchor().type === 'placeholder') this.setExtent(-1);
     this._announce('move', oldPath);
+    this.selectionDidChange();
+    this.suppressChangeNotifications = savedSuppressChangeNotifications;
     return true;
 }
 
@@ -1909,6 +1916,7 @@ EditableMathlist.prototype.anchorStyle = function() {
             fontFamily: anchor.fontFamily,
             fontShape: anchor.fontShape,
             fontSeries: anchor.fontSeries,
+            fontSize: anchor.fontSize
         };
     }
     let i = 1;
@@ -1921,6 +1929,7 @@ EditableMathlist.prototype.anchorStyle = function() {
                 fontFamily: ancestor.fontFamily,
                 fontShape: ancestor.fontShape,
                 fontSeries: ancestor.fontSeries,
+                fontSize: ancestor.fontSize
             };
         }
         i += 1;
@@ -2003,7 +2012,8 @@ function applyStyleToUnstyledAtoms(atom, style) {
             !atom.backgroundColor && 
             !atom.fontFamily &&
             !atom.fontShape && 
-            !atom.fontSeries) {
+            !atom.fontSeries &&
+            !atom.fontSize) {
             atom.applyStyle(style);
             applyStyleToUnstyledAtoms(atom.body, style);
             applyStyleToUnstyledAtoms(atom.numer, style);
@@ -2925,7 +2935,7 @@ EditableMathlist.prototype.moveToSubscript_ = function() {
                 // this.setSelection(this.anchorOffset() + 1);
                 this.anchor().subscript = [makeFirstAtom()];
             } else {
-                if (this.anchor().limits === 'nolimits') {
+                if (this.anchor().limits !== 'limits') {
                     this.siblings().splice(
                         this.anchorOffset() + 1,
                         0,
@@ -2951,9 +2961,7 @@ EditableMathlist.prototype.moveToSubscript_ = function() {
  * - subscript: move to superscript, creating it if necessary
  * - numerator: move to denominator
  * - denominator: move to numerator
- * - otherwise: do nothing and return false
- * @return {boolean} True if the move was possible. False is there is no
- * opposite to move to, in which case the cursors is left unchanged.
+ * - otherwise: move to superscript
  * @method EditableMathlist#moveToOpposite_
  */
 EditableMathlist.prototype.moveToOpposite_ = function() {
@@ -2966,7 +2974,6 @@ EditableMathlist.prototype.moveToOpposite_ = function() {
     const oppositeRelation = OPPOSITE_RELATIONS[this.relation()];
     if (!oppositeRelation) {
         this.moveToSuperscript_();
-        return false;
     }
 
     if (!this.parent()[oppositeRelation]) {
@@ -2975,9 +2982,7 @@ EditableMathlist.prototype.moveToOpposite_ = function() {
         this.parent()[oppositeRelation] = [makeFirstAtom()];
     }
 
-    this.setSelection(1, 'end', oppositeRelation);
-
-    return true;
+    this.setSelection(0, 'end', oppositeRelation);
 }
 
 /**
@@ -3036,13 +3041,11 @@ EditableMathlist.prototype._addCell = function(where) {
 
             const cellIndex = arrayIndex(parent.array, colRow);
 
-            this.selectionWillChange();
             this.path.pop();
             this.path.push({
                     relation: 'cell' + cellIndex.toString(),
                     offset: 0});
             this.insertFirstAtom();
-            this.selectionDidChange();
         }
     }
 }
@@ -3076,31 +3079,39 @@ EditableMathlist.prototype.convertParentToArray = function() {
  * @method EditableMathlist#addRowAfter_
  */
 EditableMathlist.prototype.addRowAfter_ = function() {
+    this.contentWillChange();
     this.convertParentToArray();
     this._addCell('after row');
+    this.contentDidChange();
 }
 /**
  * @method EditableMathlist#addRowBefore_
  */
 EditableMathlist.prototype.addRowBefore_ = function() {
+    this.contentWillChange();
     this.convertParentToArray();
     this._addCell('before row');
+    this.contentDidChange();
 }
 
 /**
  * @method EditableMathlist#addColumnAfter_
  */
 EditableMathlist.prototype.addColumnAfter_ = function() {
+    this.contentWillChange();
     this.convertParentToArray();
     this._addCell('after column');
+    this.contentDidChange();
 }
 
 /**
  * @method EditableMathlist#addColumnBefore_
  */
 EditableMathlist.prototype.addColumnBefore_ = function() {
+    this.contentWillChange();
     this.convertParentToArray();
     this._addCell('before column');
+    this.contentDidChange();
 }
 
 
@@ -3150,13 +3161,19 @@ EditableMathlist.prototype._applyStyle = function(style) {
     if (style.series) style.fontSeries = style.series;
     if (style.fontSeries && everyStyle('fontSeries', style.fontSeries)) {
         // If the selection already has this series (weight), turn it off
-        style.fontSeries = 'md';
+        style.fontSeries = 'm';
     }
 
     if (style.shape) style.fontShape = style.shape;
     if (style.fontShape && everyStyle('fontShape', style.fontShape)) {
         // If the selection already has this shape (italic), turn it off
         style.fontShape = 'up';
+    }
+
+    if (style.size) style.fontSize = style.size;
+    if (style.fontSize && everyStyle('fontSize', style.fontSize)) {
+        // If the selection already has this size, reset it to default size
+        style.fontSize = 'size5';
     }
 
     this.contentWillChange();

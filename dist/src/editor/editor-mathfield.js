@@ -173,7 +173,7 @@ function MathField(element, config) {
         } else {
             markup += '<span class="ML__textarea">' +
                 '<textarea class="ML__textarea__textarea" autocapitalize="off" autocomplete="off" ' +
-                'autocorrect="off" spellcheck="false" aria-hidden="true" tabindex="-1">' +
+                'autocorrect="off" spellcheck="false" aria-hidden="true" tabindex="0">' +
                 '</textarea>' +
             '</span>';
         }
@@ -276,8 +276,6 @@ function MathField(element, config) {
 
     // Focus/blur state
     this.blurred = true;
-    on(window, 'focus', this);
-    on(window, 'blur', this);
     on(this.element, 'focus', this);
     on(this.element, 'blur', this);
 
@@ -293,8 +291,8 @@ function MathField(element, config) {
         typedText:      this._onTypedText.bind(this),
         paste:          this._onPaste.bind(this),
         keystroke:      this._onKeystroke.bind(this),
-        // focus:          this._onFocus.bind(this),
-        // blur:           this._onBlur.bind(this),
+        focus:          this._onFocus.bind(this),
+        blur:           this._onBlur.bind(this),
     })
 
 
@@ -1984,7 +1982,7 @@ MathField.prototype.selectedText =
 MathField.prototype.$selectedText = function(format) {
     const atoms = this.mathlist.getSelectedAtoms();
     if (!atoms) return '';
-    const root = MathAtom.makeRoot(atoms[0].mode, atoms);
+    const root = MathAtom.makeRoot('math', atoms);
     return this.formatMathlist(root, format);
 }
 
@@ -2269,9 +2267,6 @@ MathField.prototype.$insert = function(s, options) {
             this.mathlist.addColumnAfter_();
         } else {
             const savedStyle = this.style;
-            if (!this.style.fontFamily) {
-                this.style.fontFamily = 'math';
-            }
             this.mathlist.insert(s, { 
                 mode: this.mode, 
                 style: this.mathlist.anchorStyle(), 
@@ -2511,6 +2506,7 @@ MathField.prototype._attachButtonHandlers = function(el, command) {
         if (ev.type !== 'mousedown' || ev.buttons === 1) {
             // The primary button was pressed or the screen was tapped.
             ev.stopPropagation();
+            ev.preventDefault();
 
             el.classList.add('pressed');
             pressHoldStart = Date.now();
@@ -3023,12 +3019,14 @@ MathField.prototype.toggleVirtualKeyboard_ = function(theme) {
  * - 'ux': ultra-expanded
  * 
  * @param {string} [style.fontShape=''] - The font 'shape', i.e. italic.
+ * - 'up': upright
  * - 'it': italic
  * - 'sl': slanted or oblique (often the same as italic)
  * - 'sc': small caps
  * - 'ol': outline
  *  
- * 
+ * @param {string} [style.fontSize=''] - The font size:  'size1'...'size10'
+ * 'size5' is the default size
  * */
 MathField.prototype.$applyStyle = 
 MathField.prototype.applyStyle_ = function(style) {

@@ -6,8 +6,22 @@
  * @private
  */
 
+// These keys on international (non-US QWERTY) keyboards should 
+// be mapped to the coresponding virtual keys (they could be shifted keys on
+// international keyboards)
+const INTL_KEY = {
+    '#':            '#',
+    '|':            '|',
+    '[':            'BracketLeft',
+    ']':            'BracketRight',
+    '-':            'Minus',
+    '+':            'Plus',
+    '=':            'Equal',
+    '/':            'Slash',
+    '\\':           'Backslash',
+}
 
-  const KEY_NAMES = {
+const KEY_NAMES = {
     'Escape':       'Esc',
     ' ':            'Spacebar',
     'ArrowLeft':    'Left',
@@ -94,6 +108,7 @@
  */
 function keyboardEventToString(evt) {
     let keyname;
+    let useModifiers = true;
 
     if (evt.key === 'Unidentified') {
         // On Android, the evt.key seems to always be Unidentified. 
@@ -104,7 +119,12 @@ function keyboardEventToString(evt) {
     }
 
     if (!keyname) {
-        keyname = KEY_NAMES[evt.key] || evt.code;
+        if (INTL_KEY[evt.key]) {
+            keyname = INTL_KEY[evt.key];
+            useModifiers = false;
+        } else {
+            keyname = KEY_NAMES[evt.key] || evt.code;
+        }
 
         // For virtual keyboards (iOS, Android) and Microsoft Edge (!)
         // the `evt.code`, which represents the physical key pressed, is set 
@@ -119,8 +139,8 @@ function keyboardEventToString(evt) {
 
     if (evt.ctrlKey) modifiers.push('Ctrl');
     if (evt.metaKey) modifiers.push('Meta');
-    if (evt.altKey) modifiers.push('Alt');
-    if (evt.shiftKey) modifiers.push('Shift');
+    if (useModifiers && evt.altKey) modifiers.push('Alt');
+    if (useModifiers && evt.shiftKey) modifiers.push('Shift');
 
     // If no modifiers, simply return the key name
     if (modifiers.length === 0) return keyname;
@@ -200,8 +220,15 @@ function delegateKeyboardEvents(textarea, handlers) {
             deadKey = true;
             compositionInProgress = false;
             // This sequence seems to cancel dead keys
+            // but don't call our blur/focus handlers
+            const savedBlur = handlers.blur;
+            const savedFocus = handlers.focus;
+            handlers.blur = null;
+            handlers.focus = null;
             textarea.blur();
             textarea.focus();
+            handlers.blur = savedBlur;
+            handlers.focus = savedFocus;
         } else {
             deadKey = false;
         }
@@ -256,19 +283,13 @@ function delegateKeyboardEvents(textarea, handlers) {
     function onBlur() {
         keydownEvent = null;
         keypressEvent = null;
-        // if (handlers.blur) handlers.blur();
+        if (handlers.blur) handlers.blur();
     }
-    // function onFocus() {
-    //     // if (handlers.focus) {
-    //     //     // Invoking focus() can have a side effect of temporarily bluring 
-    //     //     // the text area, causing the blur handler to be invoked.
-    //     //     // Prevent this by temporarily turning it off.
-    //     //     const savedBlur = handlers.blur;
-    //     //     handlers.blur = null;
-    //     //     handlers.focus();
-    //     //     handlers.blur = savedBlur;
-    //     // }
-    // }
+    function onFocus() {
+        if (handlers.focus) {
+            handlers.focus();
+        }
+    }
 
     const target = textarea || handlers.container;
 
@@ -279,7 +300,7 @@ function delegateKeyboardEvents(textarea, handlers) {
     target.addEventListener('copy', onCopy, true);
     target.addEventListener('cut', onCut, true);
     target.addEventListener('blur', onBlur, true);
-    // target.addEventListener('focus', onFocus, true);
+    target.addEventListener('focus', onFocus, true);
     target.addEventListener('compositionstart', 
         () => { compositionInProgress = true }, true);
     target.addEventListener('compositionend', 
@@ -289,8 +310,14 @@ function delegateKeyboardEvents(textarea, handlers) {
     // with input methods or emoji input...
     target.addEventListener('input', () => { 
         if (deadKey) { 
+            const savedBlur = handlers.blur;
+            const savedFocus = handlers.focus;
+            handlers.blur = null;
+            handlers.focus = null;
             textarea.blur();
             textarea.focus();
+            handlers.blur = savedBlur;
+            handlers.focus = savedFocus;
             deadKey = false;
             compositionInProgress = false;
             defer(handleTypedText); 

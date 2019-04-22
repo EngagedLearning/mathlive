@@ -172,8 +172,8 @@ const KEYBOARD_SHORTCUTS = {
     'math:Ctrl-Digit5':          'moveToOpposite',
     'math:Ctrl-Digit6':          'moveToSuperscript',
     'math:Ctrl-Minus':           'moveToSubscript',
-    'math:Alt-BracketLeft':      ['insert', '\\left[ #0 \\right]'],
-    'math:Alt-Shift-BracketLeft':  ['insert', '\\left{ #0 \\right}'],
+    'math:Alt-BracketLeft':      ['insert', '\\left\\lbrack #0 \\right\\rbrack'],
+    'math:Alt-Shift-BracketLeft':  ['insert', '\\left\\lbrace #0 \\right\\rbrace'],
     'math:Return':               'addRowAfter',
     'math:Enter':                'addRowAfter',
     'math:Ctrl-Comma':           'addColumnAfter',      
@@ -499,6 +499,8 @@ const INLINE_SHORTCUTS = {
     '||':                   '\\Vert',
     '{':                    '\\{',
     '}':                    '\\}',
+    
+    '*':                    '\\cdot',
 
 
 /*
@@ -506,7 +508,6 @@ const INLINE_SHORTCUTS = {
     // ASCIIIMath
     //
     // Binary operation symbols
-    '*':                    '\\cdot',
     '**':                   '\\ast',
     '***':                  '\\star',
     '//':                   '\\slash',
@@ -645,7 +646,12 @@ function validateShortcut(siblings, shortcut) {
     let closefence = false;
     let text = false;
     let space = false;
-    const sibling = siblings[siblings.length - 1];
+    let sibling = siblings[siblings.length - 1];
+    let index = siblings.length - 1;
+    while (sibling && sibling.type === 'msubsup') {
+        index -= 1;
+        sibling = siblings[index];
+    }
     nothing = !sibling || sibling.type === 'first';         // start of a group
     if (sibling) {
         text = sibling.mode === 'text';

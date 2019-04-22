@@ -91,8 +91,7 @@ file contains the definitions of the build scripts.</p>
 $ npm install</code></pre>The <code>npm install</code> command installs in the <code>mathlive/node_modules</code> directory all the Node
 modules necessary to build and test the MathLive library and its documentation.</li>
 </ol>
-<p>Depending on your system setup, you may need to run as admin, in which case
-use <code>sudo npm install</code>.</p>
+<p>Depending on your system setup, you may need to run as admin, in which case use <code>sudo npm install</code> or equivalent.</p>
 <p>Once the installation is successful, you can use the following commands:</p>
 <pre class="prettyprint source lang-bash"><code># Build the project for local use
 # 1. Compile the `.css/.less` file to `build/*.css`
@@ -123,6 +122,12 @@ $ npm run clean
 # The `dist/` folder will contain the `.js`, `.css` and font files necessary to 
 # use MathLive. The `docs/` folder will also be updated.
 $ npm run dist
+
+# Run a local server to view the examples and do some simple debugging
+# Note that the use of native modules require a server (they do not work
+# with local files)
+# After running this command, visit http://localhost:8080/examples/ in a browser
+$ npm run start
 </code></pre><p>During development, it is recommended that you keep the <code>npm run dev</code> 
 command running in a terminal window while you make the necessary changes
 to the source files of the project in your favorite editor. When you 
